@@ -22,6 +22,7 @@ EXPECTED_COLUMNS = {
 class TestSchema:
     """Verify the transformed table has the correct structure."""
 
+    """Verify that the table exists."""
     def test_table_exists(self, cursor):
         cursor.execute("""
             SELECT EXISTS (
@@ -31,7 +32,8 @@ class TestSchema:
             );
         """)
         assert cursor.fetchone()[0] is True, "Table shop.customer_orders_transformed does not exist"
-
+        
+    """Verify that the transformed table contains exactly the expected columns, with no missing or extra columns."""
     def test_column_names(self, cursor):
         cursor.execute("""
             SELECT column_name
@@ -45,7 +47,7 @@ class TestSchema:
             f"Missing: {EXPECTED_COLUMNS - actual_columns}\n"
             f"Extra: {actual_columns - EXPECTED_COLUMNS}"
         )
-
+    """Verify that the transformed table contains exactly the expected number of columns."""
     def test_column_count(self, cursor):
         cursor.execute("""
             SELECT COUNT(*)
@@ -58,12 +60,12 @@ class TestSchema:
 
 class TestDataQuality:
     """Verify data quality and row counts."""
-
     def test_row_count(self, cursor):
         cursor.execute("SELECT COUNT(*) FROM shop.customer_orders_transformed;")
         count = cursor.fetchone()[0]
         assert count == 10, f"Expected 10 rows, got {count}"
 
+    """Verify that the transformed table contains no NULL customer_ids."""
     def test_no_null_customer_ids(self, cursor):
         cursor.execute("""
             SELECT COUNT(*) FROM shop.customer_orders_transformed
@@ -71,6 +73,7 @@ class TestDataQuality:
         """)
         assert cursor.fetchone()[0] == 0, "Found NULL customer_ids"
 
+    """Verify that the transformed table contains no NULL order_ids."""
     def test_no_null_order_ids(self, cursor):
         cursor.execute("""
             SELECT COUNT(*) FROM shop.customer_orders_transformed
@@ -81,7 +84,7 @@ class TestDataQuality:
 
 class TestTransformations:
     """Verify that ETL transformations were applied correctly."""
-
+    """Verify that the names are uppercase."""
     def test_names_are_uppercase(self, cursor):
         cursor.execute("""
             SELECT COUNT(*) FROM shop.customer_orders_transformed
@@ -90,6 +93,7 @@ class TestTransformations:
         """)
         assert cursor.fetchone()[0] == 0, "Found names that are not uppercase"
 
+    """Verify that the total_amount is calculated correctly."""
     def test_total_amount_calculation(self, cursor):
         cursor.execute("""
             SELECT COUNT(*) FROM shop.customer_orders_transformed
@@ -97,6 +101,7 @@ class TestTransformations:
         """)
         assert cursor.fetchone()[0] == 0, "Found incorrect total_amount calculations"
 
+    """Verify that all customers are joined."""
     def test_all_customers_joined(self, cursor):
         cursor.execute("""
             SELECT DISTINCT customer_id
