@@ -1,25 +1,33 @@
 # AWS Glue ETL - Test Project
 
-Pytest project for validating the output of an AWS Glue ETL pipeline that joins customer data (RDS PostgreSQL) with order data (S3), transforms them, and writes results to `shop.customer_orders_transformed`.
+Pytest project for validating AWS Glue ETL outputs from two sources:
+- S3 parquet data (via Pandas)
+- PostgreSQL transformed table `shop.customer_orders_transformed` (via psycopg2)
 
 ## Project Structure
 
 ```
 aws-glue-test-project/
 ├── tests/
-│   ├── conftest.py              # Database connection fixtures
-│   └── test_transformation.py   # Schema, data quality, and transformation tests
-├── .env                         # Database credentials (not committed)
-├── .gitignore
+│   ├── conftest.py         # Shared fixtures for RDS + S3
+│   ├── rds/
+│   │   └── test_rds.py     # SQL-based validation against transformed table
+│   └── s3/
+│       └── test_s3.py      # Dataframe-based validation for parquet data
+├── .github/workflows/
+│   └── test.yml            # GitHub Actions test workflow
+├── refresh_aws_session.sh  # MFA helper for temporary AWS credentials
 ├── requirements.txt
-└── README.md
+├── .gitignore
+└── readme.md
 ```
 
-## What's Tested
+## What Is Tested
 
-- **Schema**: table exists, correct column names, correct column count
-- **Data Quality**: row count, no NULL primary keys
-- **Transformations**: names are uppercase, total_amount = quantity × price, all customers joined
+Both suites validate:
+- **Schema**: expected columns and expected column count
+- **Data quality**: row count, no NULL IDs
+- **Transformations**: uppercase names and `total_amount = quantity * price`
 
 ## Setup
 
@@ -36,13 +44,17 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-3. Create a `.env` file in the project root with your database credentials:
-```
+3. Create a `.env` file in the project root:
+```env
+# RDS
 RDS_HOST=your-rds-endpoint
 RDS_PORT=5432
 RDS_DATABASE=postgres
 RDS_USER=postgres
 RDS_PASSWORD=your_password
+
+# S3 parquet path
+S3_BUCKET=s3://your-bucket/path/to/file.parquet
 ```
 
 ## Run Tests
@@ -52,10 +64,34 @@ Run all tests:
 pytest tests/ -v
 ```
 
+Run only RDS tests:
+```bash
+pytest tests/rds/ -v
+```
+
+Run only S3 tests:
+```bash
+pytest tests/s3/ -v
+```
+
 Run with HTML report:
 ```bash
 pip install pytest-html
 pytest tests/ -v --html=report.html --self-contained-html
 ```
 
-Then open `report.html` in your browser to view the results.
+Then open `report.html` in your browser to view results.
+
+## CI Notes
+
+The GitHub Actions workflow currently runs the S3 suite (`tests/s3/`) on:
+- push to `main` when files under `tests/**` change
+- manual trigger (`workflow_dispatch`)
+
+## Git Ignore Notes
+
+Local runtime and editor artifacts are ignored, including:
+- `.env`
+- `venv/`
+- `.pytest_cache/`
+- `.cursor/`
