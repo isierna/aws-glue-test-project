@@ -4,3 +4,6 @@ __pycache__/
 venv/
 report.html
 .cursor/
+package
+lambda_package.zip
+.DS_Store
